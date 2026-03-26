@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { Account, Client, formatMoney } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 
 interface AccountsPageProps {
   accounts: Account[];
@@ -27,27 +28,23 @@ export default function AccountsPage({ accounts, setAccounts, clients, setClient
 
   const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedClientId) {
       toast({ title: 'Выберите клиента', variant: 'destructive' });
       return;
     }
-    const acc: Account = {
-      id: 'acc' + Date.now(),
-      number: '40817810' + String(Date.now()).slice(-12),
-      clientId: selectedClientId,
-      balance: 0,
-      currency: 'RUB',
-      type: accType,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    setAccounts([...accounts, acc]);
-    const updated = clients.map((c) =>
-      c.id === selectedClientId ? { ...c, accounts: [...c.accounts, acc.id] } : c
-    );
-    setClients(updated);
-    setShowAdd(false);
-    toast({ title: 'Счёт открыт', description: acc.number });
+    try {
+      const acc = await api.accounts.create({ clientId: selectedClientId, type: accType });
+      setAccounts([...accounts, acc]);
+      const updated = clients.map((c) =>
+        c.id === selectedClientId ? { ...c, accounts: [...c.accounts, acc.id] } : c
+      );
+      setClients(updated);
+      setShowAdd(false);
+      toast({ title: 'Счёт открыт', description: acc.number });
+    } catch {
+      toast({ title: 'Ошибка создания счёта', variant: 'destructive' });
+    }
   };
 
   return (

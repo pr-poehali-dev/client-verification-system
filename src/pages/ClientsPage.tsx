@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { Client, Account, formatMoney } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 
 interface ClientsPageProps {
   clients: Client[];
@@ -27,46 +28,41 @@ export default function ClientsPage({ clients, setClients, accounts, setAccounts
     c.passport.includes(search)
   );
 
-  const handleAddClient = () => {
+  const handleAddClient = async () => {
     if (!newClient.fullName || !newClient.phone || !newClient.passport) {
       toast({ title: 'Заполните обязательные поля', variant: 'destructive' });
       return;
     }
-    const client: Client = {
-      id: 'c' + Date.now(),
-      ...newClient,
-      accounts: [],
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    setClients([...clients, client]);
-    setNewClient({ fullName: '', phone: '', passport: '', birthDate: '', address: '' });
-    setShowAddClient(false);
-    toast({ title: 'Клиент добавлен', description: client.fullName });
+    try {
+      const created = await api.clients.create(newClient);
+      setClients([...clients, { ...created }]);
+      setNewClient({ fullName: '', phone: '', passport: '', birthDate: '', address: '' });
+      setShowAddClient(false);
+      toast({ title: 'Клиент добавлен', description: created.fullName });
+    } catch {
+      toast({ title: 'Ошибка сохранения', variant: 'destructive' });
+    }
   };
 
-  const handleAddAccount = () => {
+  const handleAddAccount = async () => {
     const clientId = addAccountFor || selected?.id;
     if (!clientId) return;
-    const acc: Account = {
-      id: 'acc' + Date.now(),
-      number: '40817810' + String(Date.now()).slice(-12),
-      clientId,
-      balance: 0,
-      currency: 'RUB',
-      type: newAccType,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    setAccounts([...accounts, acc]);
-    const updated = clients.map((c) =>
-      c.id === clientId ? { ...c, accounts: [...c.accounts, acc.id] } : c
-    );
-    setClients(updated);
-    if (selected?.id === clientId) {
-      setSelected({ ...selected, accounts: [...selected.accounts, acc.id] });
+    try {
+      const acc = await api.accounts.create({ clientId, type: newAccType });
+      setAccounts([...accounts, acc]);
+      const updated = clients.map((c) =>
+        c.id === clientId ? { ...c, accounts: [...c.accounts, acc.id] } : c
+      );
+      setClients(updated);
+      if (selected?.id === clientId) {
+        setSelected({ ...selected, accounts: [...selected.accounts, acc.id] });
+      }
+      setShowAddAccount(false);
+      setAddAccountFor(null);
+      toast({ title: 'Счёт открыт', description: acc.number });
+    } catch {
+      toast({ title: 'Ошибка создания счёта', variant: 'destructive' });
     }
-    setShowAddAccount(false);
-    setAddAccountFor(null);
-    toast({ title: 'Счёт открыт', description: `${acc.number}` });
   };
 
   const clientAccounts = selected ? accounts.filter((a) => a.clientId === selected.id) : [];

@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "Login success Tima2014",
+      "method": "POST",
+      "path": "/",
+      "body": {"employeeId": "emp2", "password": "2014"},
+      "expectedStatus": 200,
+      "expectedBody": {"id": "emp2"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Login fail",
+      "method": "POST",
+      "path": "/",
+      "body": {"employeeId": "wrong", "password": "wrong"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "Неверный идентификатор или пароль"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
